@@ -1,0 +1,20 @@
+{
+  "name": "gossip",
+  "version": "0.0.1",
+  "description": "Lightweight chat library",
+  "main": "build/gossip.js",
+  "scripts": {
+    "babel": "babel --presets es2015 index.js -o build/gossip.js"
+  },
+  "keywords": [
+    "chat",
+    "gossip"
+  ],
+  "author": "Harun Djulic <harundulic@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-preset-es2015": "^6.24.1"
+  }
+}
