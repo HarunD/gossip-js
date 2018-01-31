@@ -7,12 +7,48 @@
     <title>gossip demo</title>
 </head>
 <body>
-
     <script src="./../build/gossip.js"></script>
     <script>
         var Gossip = GossipJS.default;
-        var g = new Gossip('someApiBase');
-        console.log("Gossip instance : ", g);
+
+        var g = new Gossip('localhost:8080');
+
+        var chan = g.newChannel("general");
+
+        chan.onmessage = function(msg) {
+            // Append msg to your array (order by timestamp)
+            console.log("got message: ", msg);
+        };
+
+        chan.onhistory = function(history) {
+            // prepend history array to your array (order by timestamp)
+            console.log("got history: ", history);
+        };
+
+        chan.onerror = function(err) {
+            console.log("err: ", err);
+        }
+
+        chan.onclose = function() {
+            // should disable msg sending 
+        }
+
+        chan.onconnect = function() {
+            // Setup your client and you can start sending msgs
+            console.log("connected to channel");
+
+            // eg.
+            chan.send(
+                "yo from gossip js",
+                // optional meta
+                {
+                    image_url: "http://lorempixel.com/640/480/sports/",
+                }
+            );
+        }
+
+        // secret can be omited
+        chan.connect("anes", "0zoROSkBNamish4DhgwcLGFqHtB");
     </script>
 </body>
 </html>

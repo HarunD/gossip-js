@@ -4,7 +4,8 @@
   "description": "Lightweight chat library",
   "main": "build/gossip.js",
   "scripts": {
-    "build": "browserify index.js --standalone GossipJS > build/gossip.js -t [ babelify --presets [ es2015 ] --plugins [transform-class-properties] ]"
+    "build": "browserify index.js --standalone GossipJS > build/gossip.js -t [ babelify --presets [ es2015 ] --plugins [transform-class-properties] ]",
+    "watch": "watch-run -p 'index.js' npm run build"
   },
   "keywords": [
     "chat",

@@ -29,7 +29,7 @@ function Gossip(apiBase) {
     this.getChannels = function () {};
 
     this.newChannel = function (name, secret) {
-        return new Chat(_this._ax, name, secret);
+        return new Chat(_this._url, name, secret);
     };
 
     this.newPvt = function () {};
@@ -50,13 +50,18 @@ function Gossip(apiBase) {
 
 exports.default = Gossip;
 
-var Chat = function Chat(ax, name, secret) {
+var Chat = function Chat(url, name, secret) {
     _classCallCheck(this, Chat);
 
     _initialiseProps.call(this);
 
-    this._ax = ax;
+    this._url = url;
     this._name = name;
+
+    this._ax = _axios2.default.create({
+        baseURL: url, timeout: 1000
+        // headers: {'X-Custom-Header': 'foobar'}
+    });
 
     if (secret) this._secret = secret;
 };
@@ -66,6 +71,7 @@ var _initialiseProps = function _initialiseProps() {
 
     this._name = "";
     this._secret = "";
+    this._url = "";
     this._closed = false;
 
     this.onmessage = function (msg) {};
@@ -76,19 +82,24 @@ var _initialiseProps = function _initialiseProps() {
 
     this.onerror = function (err) {};
 
+    this.onconnect = function () {};
+
     this.onclose = function () {};
 
     this.connect = function (nick, secret) {
-        _this2._ws = new WebSocket(url + "/agent/connect");
+        // TODO - ssl option
+        _this2._ws = new WebSocket("ws://" + _this2._url + "/agent/connect");
 
         _this2._ws.onopen = function () {
-            return _this2._init(nick, secret);
+            _this2._init(nick, secret);
+            _this2.onconnect();
         };
+
         _this2._ws.onmessage = _this2._onMessage;
         _this2._ws.onclose = function () {
             if (!_this2._closed) {
-                _this2._ws = new WebSocket(url + "/agent/connect"); // TODO - exp retry ??
-                if (_this2.onclose) _this2.onclose();
+                _this2._ws = new WebSocket("ws://" + _this2._url + "/agent/connect"); // TODO - exp retry ??
+                _this2.onclose();
             }
         };
     };
@@ -97,8 +108,26 @@ var _initialiseProps = function _initialiseProps() {
         if (secret === "") {
             // TODO - try to fetch it from local store
         }
-        ws.send("{\"nick\": \"" + nick + "\", secret: " + secret + ", channel: " + _this2._name + "}");
+        _this2._ws.send(JSON.stringify({
+            nick: nick,
+            secret: secret,
+            channel: _this2._name
+        }));
     };
+
+    this.send = function (text, meta) {
+        var msg = {
+            text: text,
+            meta: meta
+        };
+
+        _this2._ws.send(JSON.stringify({
+            type: 0,
+            data: msg
+        }));
+    };
+
+    this.getHistory = function (last_seq) {};
 
     this.getMembers = function () {
         //
@@ -110,7 +139,7 @@ var _initialiseProps = function _initialiseProps() {
 
     this.close = function () {
         _this2._closed = true;
-        _this2.ws.close();
+        _this2._ws.close();
     };
 
     this._onMessage = function (msg) {
@@ -119,15 +148,15 @@ var _initialiseProps = function _initialiseProps() {
             // TODO - enum?
             case 0:
                 // if (shouldLog) console.log(`gossip got message: ${M.data}`);
-                if (_this2.onmessage) _this2.onmessage(M.data);
+                _this2.onmessage(M.data);
                 break;
             case 1:
                 // if (shouldLog) console.log(`gossip got history: ${M.data}`);
-                if (_this2.onhistory) _this2.onhistory(M.data);
+                _this2.onhistory(M.data);
                 break;
             case 2:
                 // if (shouldLog) console.log(`gossip error occurred: ${M.error}`);
-                alert(M.error); // TODO - What to do here
+                _this2.onerror({ text: M.error, from: "gossip" });
                 break;
         }
     };
