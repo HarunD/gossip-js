@@ -4,17 +4,23 @@
   "description": "Lightweight chat library",
   "main": "build/gossip.js",
   "scripts": {
-    "babel": "babel --presets es2015 index.js -o build/gossip.js"
+    "build": "browserify index.js --standalone GossipJS > build/gossip.js -t [ babelify --presets [ es2015 ] --plugins [transform-class-properties] ]"
   },
   "keywords": [
     "chat",
     "gossip"
   ],
   "author": "Harun Djulic <harundulic@gmail.com>",
-  "license": "ISC",
+  "license": "MIT",
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
-    "babel-preset-es2015": "^6.24.1"
+    "babel-loader": "^7.1.2",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-preset-es2015": "^6.24.1",
+    "babelify": "^8.0.0"
+  },
+  "dependencies": {
+    "axios": "^0.17.1"
   }
 }
