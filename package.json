@@ -1,8 +1,11 @@
 {
-  "name": "gossip",
-  "version": "0.0.1",
+  "name": "gossip-js",
+  "version": "0.0.2",
   "description": "Lightweight chat library",
   "main": "build/gossip.js",
+  "files": [
+    "build"
+  ],
   "scripts": {
     "build": "browserify index.js --standalone GossipJS > build/gossip.js -t [ babelify --presets [ es2015 ] --plugins [transform-class-properties] ]",
     "watch": "watch-run -p 'index.js' npm run build"
@@ -13,6 +16,12 @@
   ],
   "author": "Harun Djulic <harundulic@gmail.com>",
   "license": "MIT",
+  "homepage": "https://github.com/HarunD/gossip-js",
+  "bugs": "https://github.com/HarunD/gossip-js/issues",
+  "repository": {
+    "url": "https://github.com/HarunD/gossip-js",
+    "type": "git"
+  },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
