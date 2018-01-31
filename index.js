@@ -18,10 +18,10 @@ export default class Gossip {
         })
     }
 
-    getChannels = () => {}
+    getChannels = () => {};
 
     // pass axios instance to channel
-    newChannel = (name, secret) => new Chat(this._ax, name, secret);
+    newChannel = (name, secret) => new Chat(this._url, name, secret);
 
     // Or new private chat should be intialized over existing channel connection
     // (returns chan name and secret or something)
@@ -34,6 +34,7 @@ class Chat {
 
     _name = "";
     _secret = "";
+    _url = "";
 
     _closed = false;
 
@@ -41,51 +42,81 @@ class Chat {
     onhistory = (history) => {};
     onnotice = (notice) => {};
     onerror = (err) => {};
+    onconnect = () => {};
     onclose = () => {};
 
-    constructor(ax, name, secret) {
-        this._ax = ax;
+    constructor(url, name, secret) {
+        this._url = url;
         this._name = name;
+
+        this._ax = axios.create({
+            baseURL: url, timeout: 1000,
+            // headers: {'X-Custom-Header': 'foobar'}
+        })
 
         if (secret) 
             this._secret = secret;
-        }
+    };
     
     connect = (nick, secret) => {
-        this._ws = new WebSocket(url + "/agent/connect");
+        // TODO - ssl option
+        this._ws = new WebSocket("ws://" + this._url + "/agent/connect");
 
-        this._ws.onopen = () => this._init(nick, secret);
+        this._ws.onopen = () => {
+            this._init(nick, secret);
+            this.onconnect();
+        }
+
         this._ws.onmessage = this._onMessage;
         this._ws.onclose = () => {
             if (!this._closed) {
-                this._ws = new WebSocket(url + "/agent/connect"); // TODO - exp retry ??
-                if (this.onclose) 
-                    this.onclose();
-                }
+                this._ws = new WebSocket("ws://" + this._url + "/agent/connect"); // TODO - exp retry ??
+                this.onclose();
             }
-    }
+        }
+    };
 
     _init = (nick, secret) => {
         if (secret === "") {
             // TODO - try to fetch it from local store
         }
-        ws.send(`{"nick": "${nick}", secret: ${secret}, channel: ${this._name}}`);
-    }
+        this._ws.send(
+            JSON.stringify({
+                nick: nick,
+                secret: secret,
+                channel: this._name
+            })
+        );
+    };
+
+    send = (text, meta) => {
+        var msg = {
+            text: text,
+            meta: meta
+        };
+        
+        this._ws.send(
+            JSON.stringify({
+                type: 0,
+                data: msg,
+            })
+        );
+    };
+
+    getHistory = last_seq => {};
 
     getMembers = () => {
         //
-    }
+    };
 
     registerNick = nickReq => {
         // TODO - Upon registration store nick secret to local store
-    }
+    };
 
     close = () => {
         this._closed = true;
-        this
-            .ws
-            .close();
-    }
+        this._ws.close();
+    };
 
     _onMessage = msg => {
         const M = JSON.parse(msg.data);
@@ -93,18 +124,16 @@ class Chat {
                 // TODO - enum?
             case 0:
                 // if (shouldLog) console.log(`gossip got message: ${M.data}`);
-                if (this.onmessage) 
-                    this.onmessage(M.data);
+                this.onmessage(M.data);
                 break;
             case 1:
                 // if (shouldLog) console.log(`gossip got history: ${M.data}`);
-                if (this.onhistory) 
-                    this.onhistory(M.data);
+                this.onhistory(M.data);
                 break;
             case 2:
                 // if (shouldLog) console.log(`gossip error occurred: ${M.error}`);
-                alert(M.error); // TODO - What to do here
+                this.onerror({text: M.error, from: "gossip"});
                 break;
         }
-    }
+    };
 }
