@@ -1,6 +1,6 @@
 {
   "name": "gossip-js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Lightweight chat library",
   "main": "build/gossip.js",
   "files": [
