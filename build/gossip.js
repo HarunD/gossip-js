@@ -19,7 +19,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var Gossip =
 
 // TODO - create axios instance
-function Gossip(apiBase) {
+function Gossip(apiBase, isSSL) {
     var _this = this;
 
     _classCallCheck(this, Gossip);
@@ -29,7 +29,7 @@ function Gossip(apiBase) {
     this.getChannels = function () {};
 
     this.newChannel = function (name, secret) {
-        return new Chat(_this._url, name, secret);
+        return new Chat(_this._url, name, secret, _this._isSSL);
     };
 
     this.newPvt = function () {};
@@ -39,6 +39,7 @@ function Gossip(apiBase) {
         baseURL: apiBase, timeout: 1000
         // headers: {'X-Custom-Header': 'foobar'}
     });
+    this._isSSL = isSSL;
 }
 
 // pass axios instance to channel
@@ -50,20 +51,23 @@ function Gossip(apiBase) {
 
 exports.default = Gossip;
 
-var Chat = function Chat(url, name, secret) {
+var Chat = function Chat(url, name, secret, isSSL) {
     _classCallCheck(this, Chat);
 
     _initialiseProps.call(this);
 
     this._url = url;
     this._name = name;
+    this._isSSL = isSSL;
 
     this._ax = _axios2.default.create({
         baseURL: url, timeout: 1000
         // headers: {'X-Custom-Header': 'foobar'}
     });
 
-    if (secret) this._secret = secret;
+    if (secret) {
+        this._secret = secret;
+    };
 };
 
 var _initialiseProps = function _initialiseProps() {
@@ -87,8 +91,8 @@ var _initialiseProps = function _initialiseProps() {
     this.onclose = function () {};
 
     this.connect = function (nick, secret) {
-        // TODO - ssl option
-        _this2._ws = new WebSocket("ws://" + _this2._url + "/agent/connect");
+        var P = _this2._isSSL ? "wss://" : "ws://";
+        _this2._ws = new WebSocket(P + _this2._url + "/agent/connect");
 
         _this2._ws.onopen = function () {
             _this2._init(nick, secret);
@@ -98,7 +102,7 @@ var _initialiseProps = function _initialiseProps() {
         _this2._ws.onmessage = _this2._onMessage;
         _this2._ws.onclose = function () {
             if (!_this2._closed) {
-                _this2._ws = new WebSocket("ws://" + _this2._url + "/agent/connect"); // TODO - exp retry ??
+                _this2._ws = new WebSocket(P + _this2._url + "/agent/connect"); // TODO - exp retry ??
                 _this2.onclose();
             }
         };
@@ -108,11 +112,7 @@ var _initialiseProps = function _initialiseProps() {
         if (secret === "") {
             // TODO - try to fetch it from local store
         }
-        _this2._ws.send(JSON.stringify({
-            nick: nick,
-            secret: secret,
-            channel: _this2._name
-        }));
+        _this2._ws.send(JSON.stringify({ nick: nick, secret: secret, channel: _this2._name }));
     };
 
     this.send = function (text, meta) {
@@ -121,10 +121,7 @@ var _initialiseProps = function _initialiseProps() {
             meta: meta
         };
 
-        _this2._ws.send(JSON.stringify({
-            type: 0,
-            data: msg
-        }));
+        _this2._ws.send(JSON.stringify({ type: 0, data: msg }));
     };
 
     this.getHistory = function (last_seq) {};

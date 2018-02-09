@@ -8,20 +8,22 @@ import axios from "axios";
 export default class Gossip {
     _url = "";
     _ax;
+    _isSSL;
 
     // TODO - create axios instance
-    constructor(apiBase) {
+    constructor(apiBase, isSSL) {
         this._url = apiBase;
         this._ax = axios.create({
             baseURL: apiBase, timeout: 1000,
             // headers: {'X-Custom-Header': 'foobar'}
-        })
+        });
+        this._isSSL = isSSL;
     }
 
     getChannels = () => {};
 
     // pass axios instance to channel
-    newChannel = (name, secret) => new Chat(this._url, name, secret);
+    newChannel = (name, secret) => new Chat(this._url, name, secret, this._isSSL);
 
     // Or new private chat should be intialized over existing channel connection
     // (returns chan name and secret or something)
@@ -30,6 +32,7 @@ export default class Gossip {
 
 class Chat {
     _ws;
+    _isSSL;
     _ax;
 
     _name = "";
@@ -45,22 +48,26 @@ class Chat {
     onconnect = () => {};
     onclose = () => {};
 
-    constructor(url, name, secret) {
+    constructor(url, name, secret, isSSL) {
         this._url = url;
         this._name = name;
+        this._isSSL = isSSL;
 
         this._ax = axios.create({
             baseURL: url, timeout: 1000,
             // headers: {'X-Custom-Header': 'foobar'}
-        })
+        });
 
-        if (secret) 
+        if (secret) {
             this._secret = secret;
-    };
-    
+        };
+    }
+
     connect = (nick, secret) => {
-        // TODO - ssl option
-        this._ws = new WebSocket("ws://" + this._url + "/agent/connect");
+        const P = this._isSSL
+            ? "wss://"
+            : "ws://";
+        this._ws = new WebSocket(P + this._url + "/agent/connect");
 
         this._ws.onopen = () => {
             this._init(nick, secret);
@@ -70,7 +77,7 @@ class Chat {
         this._ws.onmessage = this._onMessage;
         this._ws.onclose = () => {
             if (!this._closed) {
-                this._ws = new WebSocket("ws://" + this._url + "/agent/connect"); // TODO - exp retry ??
+                this._ws = new WebSocket(P + this._url + "/agent/connect"); // TODO - exp retry ??
                 this.onclose();
             }
         }
@@ -80,13 +87,9 @@ class Chat {
         if (secret === "") {
             // TODO - try to fetch it from local store
         }
-        this._ws.send(
-            JSON.stringify({
-                nick: nick,
-                secret: secret,
-                channel: this._name
-            })
-        );
+        this
+            ._ws
+            .send(JSON.stringify({nick: nick, secret: secret, channel: this._name}));
     };
 
     send = (text, meta) => {
@@ -94,13 +97,10 @@ class Chat {
             text: text,
             meta: meta
         };
-        
-        this._ws.send(
-            JSON.stringify({
-                type: 0,
-                data: msg,
-            })
-        );
+
+        this
+            ._ws
+            .send(JSON.stringify({type: 0, data: msg}));
     };
 
     getHistory = last_seq => {};
@@ -115,7 +115,9 @@ class Chat {
 
     close = () => {
         this._closed = true;
-        this._ws.close();
+        this
+            ._ws
+            .close();
     };
 
     _onMessage = msg => {
